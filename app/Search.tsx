@@ -7,7 +7,7 @@ import { useDataSync } from "./DataProvider/DataSyncContext";
 import { SearchResults } from "./SearchResults";
 import { SearchFilters } from "./SearchFilters";
 
-// Definir el tipo de datos que vienen de la API
+// Definir el tipo de datos que vien
 export interface Evento {
   _id: string;
   Tipo: string;
