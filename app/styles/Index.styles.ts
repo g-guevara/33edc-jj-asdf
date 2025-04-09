@@ -565,6 +565,34 @@ addEventsButtonText: {
   fontSize: 14,
 },
 
+// Agrega estos estilos al objeto styles en Index.styles.ts
+
+logoutButton: {
+  position: "absolute",
+  bottom: 20,
+  alignSelf: "center",
+  flexDirection: "row",
+  backgroundColor: "#000",
+  paddingVertical: 10,
+  paddingHorizontal: 16,
+  borderRadius: 50,
+  alignItems: "center",
+  justifyContent: "center",
+},
+darkLogoutButton: {
+  backgroundColor: "#FFF",
+},
+logoutButtonText: {
+  color: "#FFF",
+  marginLeft: 8,
+  fontWeight: "bold",
+},
+darkLogoutButtonText: {
+  color: "#000",
+},
+
+
+
 
 
 });

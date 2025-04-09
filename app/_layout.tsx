@@ -38,6 +38,8 @@ function StackNavigator() {
           } : {})
         }}
       >
+        <Stack.Screen name="AuthController" options={{ headerShown: false }} />
+        <Stack.Screen name="WelcomeScreen" options={{ headerShown: false }} />
         <Stack.Screen name="index" options={{ headerShown: false }} />
         <Stack.Screen 
           name="Search" 

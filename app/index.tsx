@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { View, Text, TouchableOpacity, SafeAreaView, StatusBar } from "react-native";
+import { View, Text, TouchableOpacity, SafeAreaView, StatusBar, Alert } from "react-native";
 import { useNavigation, useFocusEffect } from "@react-navigation/native";
 import { StackNavigationProp } from '@react-navigation/stack';
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -12,6 +12,8 @@ type RootStackParamList = {
   Main: undefined;
   Search: undefined;
   Config: undefined;
+  WelcomeScreen: undefined;
+  AuthController: undefined;
   // Add other screens in your navigation stack as needed
 };
 
@@ -62,6 +64,38 @@ const Main = () => {
     }
   };
 
+  // Función para cerrar sesión (logout)
+  const handleLogout = async () => {
+    Alert.alert(
+      "Cerrar sesión",
+      "¿Estás seguro de que deseas cerrar sesión?",
+      [
+        {
+          text: "Cancelar",
+          style: "cancel"
+        },
+        {
+          text: "Cerrar sesión",
+          onPress: async () => {
+            try {
+              // Eliminar el estado de sesión
+              await AsyncStorage.removeItem("isLoggedIn");
+              // Navegar a la pantalla de autenticación
+              navigation.reset({
+                index: 0,
+                routes: [{ name: "AuthController" }],
+              });
+            } catch (error) {
+              console.error("Error al cerrar sesión:", error);
+              Alert.alert("Error", "No se pudo cerrar sesión correctamente.");
+            }
+          },
+          style: "destructive"
+        }
+      ]
+    );
+  };
+
   return (
     <>
       {/* Configure StatusBar based on theme */}
@@ -110,6 +144,17 @@ const Main = () => {
             isDarkMode={isDarkMode} 
             navigation={navigation} 
           />
+          
+          {/* Botón de logout (puedes ubicarlo donde prefieras) */}
+          <TouchableOpacity 
+            style={[styles.logoutButton, isDarkMode && styles.darkLogoutButton]} 
+            onPress={handleLogout}
+          >
+            <Icon name="log-out-outline" size={20} color={isDarkMode ? "#000" : "#fff"} />
+            <Text style={[styles.logoutButtonText, isDarkMode && styles.darkLogoutButtonText]}>
+              Cerrar sesión
+            </Text>
+          </TouchableOpacity>
         </View>
       </SafeAreaView>
     </>
