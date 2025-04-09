@@ -7,6 +7,8 @@ import android.content.Intent
 import android.widget.RemoteViews
 import android.util.Log
 import android.view.View
+import android.os.Bundle
+import android.widget.Toast
 import org.json.JSONArray
 import org.json.JSONException
 import org.json.JSONObject
@@ -69,11 +71,49 @@ class MyAppWidget : AppWidgetProvider() {
         Log.d(TAG, "onReceive: Acción recibida: ${intent.action}")
         super.onReceive(context, intent)
     }
+    
+    // Manejar cambios de tamaño de widget
+    override fun onAppWidgetOptionsChanged(
+        context: Context,
+        appWidgetManager: AppWidgetManager,
+        appWidgetId: Int,
+        newOptions: Bundle?
+    ) {
+        Log.d(TAG, "onAppWidgetOptionsChanged: Widget ID $appWidgetId cambió de tamaño")
+        updateAppWidget(context, appWidgetManager, appWidgetId)
+        super.onAppWidgetOptionsChanged(context, appWidgetManager, appWidgetId, newOptions)
+    }
 
     companion object {
         fun updateAppWidget(context: Context, appWidgetManager: AppWidgetManager, appWidgetId: Int) {
             Log.d("MyAppWidget", "Actualizando widget ID: $appWidgetId")
             
+            // Obtener opciones para determinar el tamaño
+            val options = appWidgetManager.getAppWidgetOptions(appWidgetId)
+            val minWidth = options.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_WIDTH, 0)
+            val minHeight = options.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_HEIGHT, 0)
+            
+            // Decidir qué diseño usar basado en el tamaño
+            val isSmallWidget = minWidth < 180 || minHeight < 110
+            
+            // Construir la vista del widget
+            val views = if (isSmallWidget) {
+                // Usar diseño pequeño cuadrado
+                Log.d("MyAppWidget", "Usando diseño pequeño para widget ID: $appWidgetId")
+                updateSmallWidget(context, appWidgetId)
+            } else {
+                // Usar diseño regular
+                Log.d("MyAppWidget", "Usando diseño regular para widget ID: $appWidgetId")
+                updateRegularWidget(context, appWidgetId)
+            }
+            
+            // Actualiza el widget
+            appWidgetManager.updateAppWidget(appWidgetId, views)
+            Log.d("MyAppWidget", "Widget ID $appWidgetId actualizado exitosamente")
+        }
+        
+        // Actualizar widget con diseño regular (horizontal)
+        private fun updateRegularWidget(context: Context, appWidgetId: Int): RemoteViews {
             // Construye la vista del widget
             val views = RemoteViews(context.packageName, R.layout.app_widget)
             
@@ -186,9 +226,112 @@ class MyAppWidget : AppWidgetProvider() {
                 views.setViewVisibility(R.id.text_more_events, View.GONE)
             }
             
-            // Actualiza el widget
-            appWidgetManager.updateAppWidget(appWidgetId, views)
-            Log.d("MyAppWidget", "Widget ID $appWidgetId actualizado exitosamente")
+            return views
+        }
+        
+        // Actualizar widget con diseño pequeño (cuadrado)
+        private fun updateSmallWidget(context: Context, appWidgetId: Int): RemoteViews {
+            // Construye la vista del widget pequeño
+            val views = RemoteViews(context.packageName, R.layout.app_widget_small)
+            
+            // Obtiene los eventos guardados
+            val savedEventsJson = getSavedTexts(context)
+            
+            try {
+                val eventsArray = JSONArray(savedEventsJson)
+                
+                // Parse JSON to SavedEvent objects
+                val savedEvents = ArrayList<SavedEvent>()
+                for (i in 0 until eventsArray.length()) {
+                    try {
+                        val eventObj = eventsArray.getJSONObject(i)
+                        savedEvents.add(SavedEvent.fromJson(eventObj))
+                    } catch (e: JSONException) {
+                        Log.e("MyAppWidget", "Error al parsear evento $i: ${e.message}")
+                    }
+                }
+                
+                if (savedEvents.isEmpty()) {
+                    // Si no hay eventos, mostrar mensaje "No hay eventos"
+                    views.setViewVisibility(R.id.small_text_no_events, View.VISIBLE)
+                    views.setViewVisibility(R.id.small_closest_event_container, View.GONE)
+                } else {
+                    // Encontrar el evento más cercano
+                    val closestEvent = findClosestEvent(savedEvents)
+                    
+                    if (closestEvent != null) {
+                        // Ocultar mensaje "No hay eventos"
+                        views.setViewVisibility(R.id.small_text_no_events, View.GONE)
+                        views.setViewVisibility(R.id.small_closest_event_container, View.VISIBLE)
+                        
+                        // Configurar la hora (en forma de píldora)
+                        val startTime = closestEvent.startTime
+                        if (!startTime.isNullOrEmpty()) {
+                            // Formatear hora (solo mostrar HH:MM si tiene formato HH:MM:SS)
+                            val formattedTime = if (startTime.length >= 5) startTime.substring(0, 5) else startTime
+                            views.setTextViewText(R.id.small_text_event_time, formattedTime)
+                        } else {
+                            views.setTextViewText(R.id.small_text_event_time, "")
+                        }
+                        
+                        // Configurar el número de sala (texto grande)
+                        views.setTextViewText(R.id.small_text_event_room, closestEvent.room ?: "")
+                        
+                        // Configurar el título del evento
+                        views.setTextViewText(R.id.small_text_event_title, closestEvent.text)
+                    } else {
+                        // No se encontró un evento cercano
+                        views.setViewVisibility(R.id.small_text_no_events, View.VISIBLE)
+                        views.setViewVisibility(R.id.small_closest_event_container, View.GONE)
+                    }
+                }
+            } catch (e: JSONException) {
+                Log.e("MyAppWidget", "Error al analizar JSON: ${e.message}", e)
+                // En caso de error, mostrar mensaje de error
+                views.setViewVisibility(R.id.small_text_no_events, View.VISIBLE)
+                views.setTextViewText(R.id.small_text_no_events, "Error al cargar eventos")
+                views.setViewVisibility(R.id.small_closest_event_container, View.GONE)
+            }
+            
+            return views
+        }
+        
+        // Encontrar el evento más cercano a la hora actual
+        private fun findClosestEvent(events: List<SavedEvent>): SavedEvent? {
+            if (events.isEmpty()) return null
+            
+            val currentTime = Calendar.getInstance()
+            val currentHour = currentTime.get(Calendar.HOUR_OF_DAY)
+            val currentMinute = currentTime.get(Calendar.MINUTE)
+            val currentTimeInMinutes = currentHour * 60 + currentMinute
+            
+            var closestEvent: SavedEvent? = null
+            var smallestDifference = Int.MAX_VALUE
+            
+            for (event in events) {
+                val startTime = event.startTime ?: continue
+                
+                // Parse time in format "HH:MM" or "HH:MM:SS"
+                val parts = startTime.split(":")
+                if (parts.size < 2) continue
+                
+                try {
+                    val eventHour = parts[0].toInt()
+                    val eventMinute = parts[1].toInt()
+                    val eventTimeInMinutes = eventHour * 60 + eventMinute
+                    
+                    val timeDifference = Math.abs(eventTimeInMinutes - currentTimeInMinutes)
+                    
+                    if (timeDifference < smallestDifference) {
+                        smallestDifference = timeDifference
+                        closestEvent = event
+                    }
+                } catch (e: NumberFormatException) {
+                    Log.e("MyAppWidget", "Error al parsear tiempo: $startTime")
+                }
+            }
+            
+            return closestEvent
         }
         
         // This helper was replaced by the SavedEvent data class

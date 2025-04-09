@@ -4,4 +4,8 @@
   <string name="expo_splash_screen_resize_mode" translatable="false">contain</string>
   <string name="expo_splash_screen_status_bar_translucent" translatable="false">false</string>
   <string name="expo_runtime_version">1.0.0</string>
+  
+  <!-- Cadenas para el widget -->
+  <string name="widget_description">Muestra tus eventos para hoy</string>
+  <string name="app_widget_description">Widget de eventos diarios</string>
 </resources>

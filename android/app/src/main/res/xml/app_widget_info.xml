@@ -5,5 +5,9 @@
     android:updatePeriodMillis="1800000"
     android:initialLayout="@layout/app_widget"
     android:resizeMode="horizontal|vertical"
-    android:widgetCategory="home_screen">
+    android:widgetCategory="home_screen"
+    android:previewLayout="@layout/app_widget"
+    android:description="@string/widget_description"
+    android:configure="com.anonymous.test1.MyAppWidgetConfigureActivity">
+    <description>Muestra tus eventos para hoy</description>
 </appwidget-provider>
