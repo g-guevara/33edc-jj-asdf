@@ -1,0 +1,40 @@
+name: UAI Intranet Login
+
+on:
+  # Se activará mediante repository_dispatch
+  workflow_dispatch:
+    inputs:
+      username:
+        description: 'Nombre de usuario'
+        required: true
+
+jobs:
+  login_to_intranet:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout código
+        uses: actions/checkout@v3
+
+      - name: Configurar Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+
+      - name: Instalar dependencias
+        run: npm install -g playwright @playwright/test
+
+      - name: Instalar navegadores
+        run: npx playwright install chromium
+
+      - name: Ejecutar script de login
+        env:
+          USERNAME: ${{ github.event.inputs.username }}
+          PASSWORD: ${{ secrets.UAI_PASSWORD }} # Configurada en los secretos del repositorio
+        run: |
+          echo "Iniciando proceso de login para el usuario: $USERNAME"
+          node .github/scripts/login_script.js
+          
+      - name: Actualizar estado
+        run: |
+          # Aquí podrías actualizar una base de datos, enviar una notificación, etc.
+          echo "Login process completed"
